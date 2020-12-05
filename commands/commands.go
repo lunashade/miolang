@@ -1,4 +1,4 @@
-package machine
+package commands
 
 type CmdType int
 
@@ -35,6 +35,7 @@ const (
 	IO_READNUM  // TAB TAB
 )
 
+//go:generate go run golang.org/x/tools/cmd/stringer -type=CmdType
 
 type Command struct {
 	Type CmdType
