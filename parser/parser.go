@@ -8,7 +8,7 @@ import (
 
 type Parser struct {
 	l   *lexer.Lexer
-	IRs chan machine.IR
+	Commands chan machine.Command
 	err error
 }
 
@@ -20,37 +20,37 @@ func (p *Parser) Next() rune {
 	return r
 }
 
-func Parse(r io.Reader) (*Parser, chan machine.IR) {
+func Parse(r io.Reader) (*Parser, chan machine.Command) {
 	p := &Parser{
 		l:   lexer.NewLexer(r),
-		IRs: make(chan machine.IR),
+		Commands: make(chan machine.Command),
 	}
 	go p.run()
-	return p, p.IRs
+	return p, p.Commands
 }
 func (p *Parser) run() {
 	for state := parseIMP; state != nil; {
 		state = state(p)
 	}
-	close(p.IRs)
+	close(p.Commands)
 }
-func (p *Parser) emit(ty machine.IRType) {
-	p.IRs <- machine.IR{Type: ty}
+func (p *Parser) emit(ty machine.CmdType) {
+	p.Commands <- machine.Command{Type: ty}
 }
-func (p *Parser) emitVal(ty machine.IRType) {
+func (p *Parser) emitVal(ty machine.CmdType) {
 	val, err := parseInt(p)
 	if err != nil {
 		p.emit(machine.IRREGAL)
 	} else {
-		p.IRs <- machine.IR{Type: ty, Arg: val}
+		p.Commands <- machine.Command{Type: ty, Arg: val}
 	}
 }
-func (p *Parser) emitLabel(ty machine.IRType) {
+func (p *Parser) emitLabel(ty machine.CmdType) {
 	val, err := parseUInt(p)
 	if err != nil {
 		p.emit(machine.IRREGAL)
 	} else {
-		p.IRs <- machine.IR{Type: ty, Arg: val}
+		p.Commands <- machine.Command{Type: ty, Arg: val}
 	}
 }
 

@@ -1,9 +1,9 @@
 package machine
 
-type IRType int
+type CmdType int
 
 const (
-	IRREGAL = iota
+	IRREGAL CmdType = iota
 	// stack SP
 	STACK_PUSH    // SP <INT>
 	STACK_DUP     // LF SP
@@ -35,7 +35,8 @@ const (
 	IO_READNUM  // TAB TAB
 )
 
-type IR struct {
-	Type IRType
+
+type Command struct {
+	Type CmdType
 	Arg  int
 }
