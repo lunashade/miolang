@@ -1,7 +1,6 @@
 package lexer
 
 import (
-	"io"
 	"strings"
 	"testing"
 )
@@ -13,7 +12,10 @@ func TestLex(t *testing.T) {
 	gots := make([]rune, 0, 5)
 	for {
 		r, err := l.Next()
-		if err == io.EOF {
+		if err != nil {
+			t.Fatalf("error: %q", err)
+		}
+		if r == EOF {
 			break
 		}
 		gots = append(gots, r)
