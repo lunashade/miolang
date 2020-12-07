@@ -1,16 +1,22 @@
 package parser
 
 import (
+	"fmt"
 	"io"
 	"miolang/commands"
 	"miolang/lexer"
 )
 
 type Parser struct {
-	l   *lexer.Lexer
+	l        *lexer.Lexer
 	Commands chan commands.Command
-	err error
+	err      error
 }
+
+var (
+	UnexpectedEOF  = fmt.Errorf("unexpected EOF")
+	UnknownCommand = fmt.Errorf("unknown commands")
+)
 
 func (p *Parser) Next() rune {
 	r, err := p.l.Next()
@@ -22,7 +28,7 @@ func (p *Parser) Next() rune {
 
 func Parse(r io.Reader) (*Parser, chan commands.Command) {
 	p := &Parser{
-		l:   lexer.NewLexer(r),
+		l:        lexer.NewLexer(r),
 		Commands: make(chan commands.Command),
 	}
 	go p.run()
@@ -37,10 +43,13 @@ func (p *Parser) run() {
 func (p *Parser) emit(ty commands.CmdType) {
 	p.Commands <- commands.Command{Type: ty}
 }
+func (p *Parser) emitError(err error) {
+	p.Commands <- commands.Command{Type: commands.IRREGAL, Err: err}
+}
 func (p *Parser) emitVal(ty commands.CmdType) {
 	val, err := parseInt(p)
 	if err != nil {
-		p.emit(commands.IRREGAL)
+		p.emitError(err)
 	} else {
 		p.Commands <- commands.Command{Type: ty, Arg: val}
 	}
@@ -48,7 +57,7 @@ func (p *Parser) emitVal(ty commands.CmdType) {
 func (p *Parser) emitLabel(ty commands.CmdType) {
 	val, err := parseUInt(p)
 	if err != nil {
-		p.emit(commands.IRREGAL)
+		p.emitError(err)
 	} else {
 		p.Commands <- commands.Command{Type: ty, Arg: val}
 	}
@@ -69,7 +78,7 @@ func parseIMP(p *Parser) stateFn {
 		r2 := p.Next()
 		switch r2 {
 		default:
-			p.emit(commands.IRREGAL)
+			p.emitError(UnexpectedEOF)
 			return nil
 		case lexer.SP:
 			return parseArith
@@ -79,7 +88,7 @@ func parseIMP(p *Parser) stateFn {
 			return parseIO
 		}
 	default:
-		p.emit(commands.IRREGAL)
+		p.emitError(UnexpectedEOF)
 		return nil
 	}
 }
@@ -88,7 +97,7 @@ func parseStack(p *Parser) stateFn {
 	r := p.Next()
 	switch r {
 	default:
-		p.emit(commands.IRREGAL)
+		p.emitError(UnexpectedEOF)
 		return nil
 	case lexer.SP:
 		p.emitVal(commands.STACK_PUSH)
@@ -103,7 +112,7 @@ func parseStack(p *Parser) stateFn {
 		case lexer.LF:
 			p.emit(commands.STACK_DROP)
 		default:
-			p.emit(commands.IRREGAL)
+			p.emitError(fmt.Errorf("parseStack: %w", UnexpectedEOF))
 			return nil
 		}
 		return parseIMP
@@ -114,8 +123,11 @@ func parseStack(p *Parser) stateFn {
 			p.emitVal(commands.STACK_DUP_N)
 		case lexer.LF:
 			p.emitVal(commands.STACK_SLIDE_N)
+		case lexer.TAB:
+			p.emitError(fmt.Errorf("parseStack: %w", UnknownCommand))
+			return nil
 		default:
-			p.emit(commands.IRREGAL)
+			p.emitError(fmt.Errorf("parseStack: %w", UnexpectedEOF))
 			return nil
 		}
 		return parseIMP
@@ -125,13 +137,13 @@ func parseArith(p *Parser) stateFn {
 	r := p.Next()
 	switch r {
 	default:
-		p.emit(commands.IRREGAL)
+		p.emitError(fmt.Errorf("parseArith: %w", UnknownCommand))
 		return nil
 	case lexer.SP:
 		r2 := p.Next()
 		switch r2 {
 		default:
-			p.emit(commands.IRREGAL)
+			p.emitError(fmt.Errorf("parseArith: %w", UnexpectedEOF))
 			return nil
 		case lexer.SP: // SP SP
 			p.emit(commands.ARITH_ADD)
@@ -145,7 +157,7 @@ func parseArith(p *Parser) stateFn {
 		r2 := p.Next()
 		switch r2 {
 		default:
-			p.emit(commands.IRREGAL)
+			p.emitError(fmt.Errorf("parseArith: %w", UnknownCommand))
 			return nil
 		case lexer.SP: // TAB SP
 			p.emit(commands.ARITH_DIV)
@@ -159,23 +171,23 @@ func parseFlow(p *Parser) stateFn {
 	r := p.Next()
 	switch r {
 	default:
-		p.emit(commands.IRREGAL)
+		p.emitError(fmt.Errorf("parseFlow: %w", UnknownCommand))
 		return nil
 	case lexer.LF:
 		r2 := p.Next()
 		switch r2 {
 		default:
-			p.emit(commands.IRREGAL)
+			p.emitError(fmt.Errorf("parseFlow: %w", UnknownCommand))
 			return nil
 		case lexer.LF:
 			p.emit(commands.FLOW_HALT)
-			return nil
 		}
+		return parseIMP
 	case lexer.SP:
 		r2 := p.Next()
 		switch r2 {
 		default:
-			p.emit(commands.IRREGAL)
+			p.emitError(fmt.Errorf("parseFlow: %w", UnknownCommand))
 			return nil
 		case lexer.SP:
 			p.emitLabel(commands.FLOW_LABEL)
@@ -189,7 +201,7 @@ func parseFlow(p *Parser) stateFn {
 		r2 := p.Next()
 		switch r2 {
 		default:
-			p.emit(commands.IRREGAL)
+			p.emitError(fmt.Errorf("parseFlow: %w", UnknownCommand))
 			return nil
 		case lexer.SP:
 			p.emitLabel(commands.FLOW_BEZ)
@@ -205,7 +217,7 @@ func parseHeap(p *Parser) stateFn {
 	r := p.Next()
 	switch r {
 	default:
-		p.emit(commands.IRREGAL)
+		p.emitError(fmt.Errorf("parseHeap: %w", UnknownCommand))
 		return nil
 	case lexer.SP:
 		p.emit(commands.HEAP_STORE)
@@ -218,30 +230,30 @@ func parseIO(p *Parser) stateFn {
 	r := p.Next()
 	switch r {
 	default:
-		p.emit(commands.IRREGAL)
+		p.emitError(fmt.Errorf("parseIO: %w", UnknownCommand))
 		return nil
 	case lexer.SP:
 		r2 := p.Next()
 		switch r2 {
 		default:
-			p.emit(commands.IRREGAL)
+			p.emitError(fmt.Errorf("parseIO: %w", UnknownCommand))
 			return nil
 		case lexer.SP:
-			p.emitLabel(commands.IO_PUTCHAR)
+			p.emit(commands.IO_PUTCHAR)
 		case lexer.TAB:
-			p.emitLabel(commands.IO_PUTNUM)
+			p.emit(commands.IO_PUTNUM)
 		}
 		return parseIMP
 	case lexer.TAB:
 		r2 := p.Next()
 		switch r2 {
 		default:
-			p.emit(commands.IRREGAL)
+			p.emitError(fmt.Errorf("parseIO: %w", UnknownCommand))
 			return nil
 		case lexer.SP:
-			p.emitLabel(commands.IO_READCHAR)
+			p.emit(commands.IO_READCHAR)
 		case lexer.TAB:
-			p.emitLabel(commands.IO_READNUM)
+			p.emit(commands.IO_READNUM)
 		}
 		return parseIMP
 	}

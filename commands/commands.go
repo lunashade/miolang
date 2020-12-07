@@ -1,5 +1,7 @@
 package commands
 
+import "fmt"
+
 type CmdType int
 
 const (
@@ -40,4 +42,12 @@ const (
 type Command struct {
 	Type CmdType
 	Arg  int
+	Err  error
+}
+
+func (cmd Command) String() string {
+	if cmd.Type == IRREGAL {
+		return fmt.Sprintf("%s: %q", cmd.Type, cmd.Err)
+	}
+	return fmt.Sprintf("%s (%d)", cmd.Type, cmd.Arg)
 }

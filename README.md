@@ -1,30 +1,20 @@
 # miolang
 
-yet another whitespace clone
+本田未央Advent Calendarの14日目のために作ったみお言語インタープリタです。
 
-## IMP
+## あそびかた
 
-- SP -> stack
-- TAB SP -> Num Op
-- TAB TAB -> Heap
-- TAB LF -> IO
-- LF -> Flow
+```bash
+$ go run . examples/miomio.mio
+みおみおみおっ
+```
 
-## Commands
+## 中身の話
 
-### stack
+Whitespaceクローンで、
 
-- SP <INT>: push INT to stack
-- LF SP: copy stack top and push
-- LF TAB: swap stack top2
-- LF LF: drop stack top
-- TAB SP <INT>: copy INT-th value on stack and push it
-- TAB LF <INT>: while keeping stack top, drop INT elements on stack
+- SPACE: み
+- TAB: お
+- LF: っ
 
-### Num Op
-
-- SP SP: Add s0 + s1
-- SP TAB: Sub s0 - s1
-- SP LF: Mul s0 * s1
-- TAB SP: Div s
-- 
+に置き換えただけですが、putchar, getcharなどの命令はUTF8のコードポイントを読み書きするようになっています。

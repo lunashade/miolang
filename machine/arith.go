@@ -1,22 +1,22 @@
 package machine
 
-func Add(s *Stack) {
+func (s *Stack) Add() {
 	a, b := s.Pop(), s.Pop()
 	s.Push(a + b)
 }
-func Sub(s *Stack) {
+func (s *Stack) Sub() {
 	a, b := s.Pop(), s.Pop()
 	s.Push(b - a)
 }
-func Mul(s *Stack) {
+func (s *Stack) Mul() {
 	a, b := s.Pop(), s.Pop()
 	s.Push(b * a)
 }
-func Div(s *Stack) {
+func (s *Stack) Div() {
 	a, b := s.Pop(), s.Pop()
 	s.Push(b / a)
 }
-func Mod(s *Stack) {
+func (s *Stack) Mod() {
 	a, b := s.Pop(), s.Pop()
 	s.Push(b % a)
 }
