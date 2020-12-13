@@ -1,8 +1,8 @@
 package main
 
 import (
-	"miolang/machine"
-	"miolang/parser"
+	"miolang/internal/machine"
+	"miolang/internal/parser"
 	"os"
 )
 

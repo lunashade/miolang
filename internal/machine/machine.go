@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"miolang/commands"
+	"miolang/internal/commands"
 	"os"
 	"strconv"
 )

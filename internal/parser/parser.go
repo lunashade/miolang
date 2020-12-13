@@ -3,8 +3,8 @@ package parser
 import (
 	"fmt"
 	"io"
-	"miolang/commands"
-	"miolang/lexer"
+	"miolang/internal/commands"
+	"miolang/internal/lexer"
 )
 
 type Parser struct {
